@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+<div class="container" style="padding: 40px;">
+    <div class="row">
+        <div class="col-sm-3">
+            <div>
+                <div class="form-group">
+                    <label>choose port</label>
+                    <select name="" class="form-control" id="port">
+
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>choose baudRate</label>
+                    <select name="" class="form-control" id="baudRate">
+                        <option value="110">110</option>
+                        <option value="300">300</option>
+                        <option value="1200">1200</option>
+                        <option value="2400">2400</option>
+                        <option value="4800">4800</option>
+                        <option value="9600">9600</option>
+                        <option value="14400">14400</option>
+                        <option value="19200">19200</option>
+                        <option value="38400">38400</option>
+                        <option value="57600">57600</option>
+                        <option value="115200" selected>115200</option>
+                    </select>
+                </div>
+                <button class="btn btn-default" id="start" data-isopen="0">open port</button>
+                <div style="margin-top: 20px">
+                    <button class="btn btn-default" id="clear">clear screen</button>
+                </div>
+
+            </div>
+
+        </div>
+        <div class="col-sm-9">
+            <div class="send-container" style="height: 500px;border: 1px solid #ccc;padding: 20px;">
+
+            </div>
+            <div style="margin-top: 20px">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="send-input" placeholder="send your code. use space split. like '02 00 02 ...">
+                    <span class="input-group-btn">
+                        <button class="btn btn-default" type="button" id="send-btn">send</button>
+                    </span>
+                </div><!-- /input-group -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var socket = io.connect('http://localhost:3050');
+
+    socket.on('get-port-done', function (res) {
+        var list = res.list;
+        alert("get port done");
+        console.log("get-port-done", list);
+        list.forEach(function (e, i) {
+            var $option = $("<option>").attr('val', e.comName).text(e.comName);
+            $("#port").append($option);
+        });
+
+        $("#start").on('click', function () {
+            var isOpen = Number($(this).attr('data-isopen'));
+
+            if (!isOpen) {
+                openPort();
+
+            } else {
+                closePort();
+            }
+
+        })
+    });
+
+    $("#clear").on('click',function () {
+        $(".send-container").empty();
+    });
+
+    $("#send-btn").on('click', function () {
+        let val = $("#send-input").val();
+        socket.emit("send-code", {data: $.trim(val)})
+    });
+
+    socket.on('port-open', function (res) {
+        alert("port open done");
+        $("#start").text("close port");
+        $("#start").attr("data-isopen", 1);
+    });
+
+    socket.on("close-done",function (res) {
+        $("#start").attr('data-isopen',0);
+        $("#start").text('open port');
+    });
+
+    function openPort() {
+        var port = $("#port").val();
+        var baudRate = $("#baudRate").val();
+        console.log('port', port, "baudRate", baudRate);
+        socket.emit("start-port", {port: port, baudRate: baudRate})
+    }
+
+
+    function closePort() {
+        socket.emit("close-port");
+        $("#start").attr('data-isopen',0);
+        $("#start").text('open port');
+    }
+
+    socket.on('send-data', function (res) {
+        console.log('res', res);
+        if (res.isImg) {
+            res.data = "data:image/png;base64," + res.data;
+            var $img = $("<img>").attr("src", res.data);
+            $('.send-container').append($img)
+        } else {
+            var $p=$("<p>").text( res.data);
+            $('.send-container').append($p);
+        }
+
+    });
+</script>
+</body>
+</html>
