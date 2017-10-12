@@ -85,7 +85,7 @@ io.on('connection', async function (socket) {
         }
 
        //初始化port
-        currentPort= new SerialPort(data.port,{baudRate: 115200});
+        currentPort= new SerialPort(data.port,{baudRate: Number.parseInt(data.baudRate)});
         let openMessage=await portConnectPromise(currentPort);
 
         io.emit('port-open', { data:"open"});
